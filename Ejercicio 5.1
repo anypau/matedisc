@@ -1,92 +1,158 @@
-#include <vector>
+#include <iostream>//biblioteca de input output
+#include <vector>//biblioteca de vectores
+#include <fstream>//manejo de archivos
+#include <sstream>//manejo de strings
+#include <string>//declaración de strings
+
 using namespace std;
-//Concatenación
-vector<vector<int>> concatenacion(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
-    int filas=BM.size();
-    
 
-    // Inicializamos el vector con el número de filas correcto
-    vector<vector<int>> concatenada(filas);
-
-    for (int i=0; i<filas; i++) {
-        // 1. Copiar elementos de BM
-        for (int j=0; j<BM[i].size(); j++) {
-            concatenada[i].push_back(BM[i][j]);
-        }
-        
-        // 2. Copiar elementos de Testores (a continuación de los de BM)
-        for (int j=0; j<Testores[i].size(); j++) {
-            concatenada[i].push_back(Testores[i][j]);
-        }
+void imprimirMatriz(const vector<vector<int>>& matriz, const string& nombre) {
+    cout<<endl<< "Resultado de " << nombre <<endl;
+    //check de matriz vacía
+    if (matriz.empty() || (matriz.size() > 0 && matriz[0].empty())) {
+        cout << "Matriz vacía"<<endl;
+        return;//no retorna nada
     }
-    
-    return concatenada;
+    for (const auto& fila:matriz) {
+        for (int elemento:fila) {
+            cout <<elemento<<"\t";
+        }
+        cout<<endl;
+    }
 }
 
+bool leerMatricesDesdeArchivo(const string& nombreArchivo, vector<vector<int>>& BM, vector<vector<int>>& Testores) {
+    ifstream archivo(nombreArchivo);
+    if (!archivo.is_open()) {
+        cerr << "Error: No se pudo abrir el archivo de matrices: " << nombreArchivo << endl;
+        return false;
+    }
 
-//Fusión Combinatoria
-#include <vector>
-using namespace std;
+    string linea;
+    bool leyendoBM = true;
+
+    while (leyendoBM && getline(archivo, linea)) {
+        if (linea.empty() || linea.find_first_not_of(" \t\n\r") == string::npos) {
+            leyendoBM = false; 
+            continue;
+        }
+        
+        stringstream ss(linea);
+        int valor;
+        vector<int> fila;
+        
+        while (ss >> valor) {
+            fila.push_back(valor);
+        }
+        if (!fila.empty()) {
+            BM.push_back(fila);
+        }
+    }
+
+    while (getline(archivo, linea)) {
+        if (linea.empty() || linea.find_first_not_of(" \t\n\r") == string::npos) {
+            continue;
+        }
+
+        stringstream ss(linea);
+        int valor;
+        vector<int> fila;
+        
+        while (ss >> valor) {
+            fila.push_back(valor);
+        }
+        if (!fila.empty()) {
+            Testores.push_back(fila);
+        }
+    }
+
+    return true;
+}
+
+vector<vector<int>> concatenacion(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
+    if (BM.size() != Testores.size()) {
+        cerr << "Error (Concatenacion): Las matrices deben tener el mismo número de filas." << endl;
+        return {};
+    }
+
+    int filas = BM.size();
+    vector<vector<int>> concatenada(filas);
+
+    for (int i = 0; i < filas; i++) {
+        concatenada[i].insert(concatenada[i].end(), BM[i].begin(), BM[i].end());
+        concatenada[i].insert(concatenada[i].end(), Testores[i].begin(), Testores[i].end());
+    }
+    return concatenada;
+}
 
 vector<vector<int>> fusionCombinatoria(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
     vector<vector<int>> resultado;
 
-    // 1. Recorremos cada fila de la matriz BM
-    for (int i=0; i<BM.size(); i++) {
-        
-        // 2. Por CADA fila de BM, recorremos TODAS las filas de Testores
-        for (int j=0; j<Testores.size(); j++) {
+    for (const auto& filaBM : BM) {
+        for (const auto& filaTestores : Testores) {
             
             vector<int> filaNueva;
             
-            // A. Agregamos los elementos de la fila actual de BM
-            filaNueva.insert(filaNueva.end(), BM[i].begin(), BM[i].end());
+            filaNueva.insert(filaNueva.end(), filaBM.begin(), filaBM.end());
+            filaNueva.insert(filaNueva.end(), filaTestores.begin(), filaTestores.end());
             
-            // B. Agregamos los elementos de la fila actual de Testores
-            filaNueva.insert(filaNueva.end(), Testores[j].begin(), Testores[j].end());
-            
-            // C. Guardamos la fila combinada en el resultado
             resultado.push_back(filaNueva);
         }
     }
-
     return resultado;
 }
-//Operador Diagonal
 
 vector<vector<int>> operadorDiagonal(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
-    // Dimensiones de BM
     int filasBM = BM.size();
     int columnasBM = (filasBM > 0) ? BM[0].size() : 0; 
 
-    // Dimensiones de Testores
     int filasTestores = Testores.size();
     int columnasTestores = (filasTestores > 0) ? Testores[0].size() : 0;
 
-    // Matriz de 0
-    // Tamaño: (filasBM + filasTestores) x (columnasBM + columnasTestores)
     vector<vector<int>> resultado(
         filasBM + filasTestores, 
         vector<int>(columnasBM + columnasTestores, 0)
     );
 
-    // BM en la esquina superior izquierda
     for (int i = 0; i < filasBM; i++) {
         for (int j = 0; j < columnasBM; j++) {
             resultado[i][j] = BM[i][j];
         }
     }
 
-    // testores en la esquina inferior derecha
     for (int i = 0; i < filasTestores; i++) {
         for (int j = 0; j < columnasTestores; j++) {
-            // El desplazamiento se basa en las dimensiones de BM
-            // Fila destino = i + altura de BM
-            // Columna destino = j + anchura de BM
             resultado[i + filasBM][j + columnasBM] = Testores[i][j];
         }
     }
 
     return resultado;
 }
+
+int main() {
+    vector<vector<int>> BM;
+    vector<vector<int>> Testores;
+    const string nombreArchivo = "matrices.txt";
+
+    cout << "Iniciando lectura de matrices desde " << nombreArchivo << "..."<<endl;
+
+    if (!leerMatricesDesdeArchivo(nombreArchivo, BM, Testores)) {
+        return 1; 
+    }
+
+    imprimirMatriz(BM, "Matriz BM Leida");
+    imprimirMatriz(Testores, "Matriz Testores Leida");
+    
+    vector<vector<int>> resConcatenacion = concatenacion(BM, Testores);
+    imprimirMatriz(resConcatenacion, "1. Concatenacion");
+
+    vector<vector<int>> resFusion = fusionCombinatoria(BM, Testores);
+    imprimirMatriz(resFusion, "2. Fusion Combinatoria");
+
+    vector<vector<int>> resDiagonal = operadorDiagonal(BM, Testores);
+    imprimirMatriz(resDiagonal, "3. Operador Diagonal");
+
+    return 0;
+}
+
 
