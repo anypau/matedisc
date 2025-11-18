@@ -1,0 +1,179 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <sstream>
+using namespace std;
+
+/* ================================================================
+   SUBFILA / MATRIZ BASICA
+   ================================================================ */
+
+bool esSubfila(const vector<int>& A, const vector<int>& B) {
+    bool menor = false;
+    for (int j = 0; j < A.size(); j++) {
+        if (A[j] > B[j]) return false;
+        if (A[j] < B[j]) menor = true;
+    }
+    return menor;
+}
+
+vector<vector<int>> matrizBasica(const vector<vector<int>>& M) {
+    vector<vector<int>> BM;
+    for (int i = 0; i < M.size(); i++) {
+        bool basica = true;
+        for (int k = 0; k < M.size(); k++) {
+            if (i != k && esSubfila(M[k], M[i])) {
+                basica = false;
+                break;
+            }
+        }
+        if (basica) BM.push_back(M[i]);
+    }
+    return BM;
+}
+
+/* ================================================================
+   GUARDAR MATRIZ
+   ================================================================ */
+void guardar(const vector<vector<int>>& M, string nombre) {
+    ofstream out(nombre);
+    for (auto& fila : M) {
+        for (int v : fila) out << v << " ";
+        out << "\n";
+    }
+    out.close();
+}
+
+/* ================================================================
+   LEER TIPICOS.TXT  → Matriz B en binario
+   ================================================================ */
+
+vector<vector<int>> leerTipicos(int &columnas) {
+    ifstream archivo("tipicos.txt");
+    string linea;
+
+    vector<vector<char>> letrasPorFila;
+    columnas = 0;
+
+    while (getline(archivo, linea)) {
+        if (linea.empty()) continue;
+
+        stringstream ss(linea);
+        string token;
+        vector<char> fila;
+
+        while (ss >> token) {
+            char c = token[0];
+
+            if (c >= 'a' && c <= 'z') {
+                fila.push_back(c);
+                int idx = c - 'a' + 1;
+                if (idx > columnas) columnas = idx;
+            }
+        }
+        if (!fila.empty()) letrasPorFila.push_back(fila);
+    }
+
+    // Convertir a binario
+    vector<vector<int>> B;
+    for (auto &L : letrasPorFila) {
+        vector<int> fila(columnas, 0);
+        for (char c : L) fila[c - 'a'] = 1;
+        B.push_back(fila);
+    }
+
+    return B;
+}
+
+/* ================================================================
+   BT (TESTORES TIPICOS)
+   ================================================================ */
+
+bool esTestor(const vector<vector<int>>& M, const vector<int>& S) {
+    for (int i = 0; i < M.size(); i++) {
+        bool ok = false;
+        for (int c : S)
+            if (M[i][c] == 1) ok = true;
+        if (!ok) return false;
+    }
+    return true;
+}
+
+bool esTipicoBT(const vector<vector<int>>& M, const vector<int>& S) {
+    if (!esTestor(M, S)) return false;
+
+    for (int i = 0; i < S.size(); i++) {
+        vector<int> sub = S;
+        sub.erase(sub.begin() + i);
+        if (esTestor(M, sub)) return false;
+    }
+    return true;
+}
+
+/* ================================================================
+   MAIN FULL AUTOMATICO
+   ================================================================ */
+
+int main() {
+    cout << "\n=== LEYENDO TIPICOS DESDE 'tipicos.txt' ===\n";
+
+    int columnas = 0;
+    auto B = leerTipicos(columnas);
+
+    cout << "\n=== MATRIZ B GENERADA ===\n";
+    for (auto &fila : B) {
+        for (int v : fila) cout << v << " ";
+        cout << "\n";
+    }
+
+    guardar(B, "matriz_B.txt");
+    cout << "\n✔ Matriz B guardada en 'matriz_B.txt'\n";
+
+    /* ============================================================
+       VERIFICAR SI B ES BASICA
+       ============================================================ */
+    auto BM = matrizBasica(B);
+
+    if (BM.size() == B.size())
+        cout << "\n✔ La matriz B ES BASICA.\n";
+    else
+        cout << "\n❌ La matriz B NO es BASICA.\n";
+
+    cout << "\n=== MATRIZ BASICA DE B ===\n";
+    for (auto &fila : BM) {
+        for (int v : fila) cout << v << " ";
+        cout << "\n";
+    }
+
+    /* ============================================================
+       BT SOBRE B
+       ============================================================ */
+    cout << "\n=== TESTORES TIPICOS DE LA MATRIZ B (BT) ===\n";
+
+    vector<vector<int>> tipicos;
+
+    for (int mask = 1; mask < (1 << columnas); mask++) {
+        vector<int> S;
+        for (int j = 0; j < columnas; j++)
+            if (mask & (1 << j)) S.push_back(j);
+
+        if (esTipicoBT(B, S)) tipicos.push_back(S);
+    }
+
+    cout << "\n--- IMPRESION DE TIPICOS ---\n";
+
+    for (auto &T : tipicos) {
+        cout << "{ ";
+        for (int c : T) cout << char('a' + c) << " ";
+        cout << "}   ";
+
+        vector<int> bin(columnas, 0);
+        for (int c : T) bin[c] = 1;
+        for (int b : bin) cout << b;
+        cout << "\n";
+    }
+
+    cout << "\n✔ PROCESO COMPLETO.\n";
+
+    return 0;
+}
