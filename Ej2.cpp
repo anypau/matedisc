@@ -67,7 +67,7 @@ int main() {
         auto tiempo_actual = high_resolution_clock::now();
         double tiempo_ms = duration_cast<milliseconds>(tiempo_actual - inicio_total).count();
 
-        cout << "\nFila " << f << ": Testores tipicos obtenidos\n";
+        cout << "\nFila " << f << ": Testores obtenidos\n";
         for (auto& t : testores_tipicos) {
             cout << "{ ";
             for (int j : t) cout << char('a' + j) << " ";
