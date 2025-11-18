@@ -1,0 +1,92 @@
+#include <vector>
+using namespace std;
+//Concatenación
+vector<vector<int>> concatenacion(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
+    int filas=BM.size();
+    
+
+    // Inicializamos el vector con el número de filas correcto
+    vector<vector<int>> concatenada(filas);
+
+    for (int i=0; i<filas; i++) {
+        // 1. Copiar elementos de BM
+        for (int j=0; j<BM[i].size(); j++) {
+            concatenada[i].push_back(BM[i][j]);
+        }
+        
+        // 2. Copiar elementos de Testores (a continuación de los de BM)
+        for (int j=0; j<Testores[i].size(); j++) {
+            concatenada[i].push_back(Testores[i][j]);
+        }
+    }
+    
+    return concatenada;
+}
+
+
+//Fusión Combinatoria
+#include <vector>
+using namespace std;
+
+vector<vector<int>> fusionCombinatoria(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
+    vector<vector<int>> resultado;
+
+    // 1. Recorremos cada fila de la matriz BM
+    for (int i=0; i<BM.size(); i++) {
+        
+        // 2. Por CADA fila de BM, recorremos TODAS las filas de Testores
+        for (int j=0; j<Testores.size(); j++) {
+            
+            vector<int> filaNueva;
+            
+            // A. Agregamos los elementos de la fila actual de BM
+            filaNueva.insert(filaNueva.end(), BM[i].begin(), BM[i].end());
+            
+            // B. Agregamos los elementos de la fila actual de Testores
+            filaNueva.insert(filaNueva.end(), Testores[j].begin(), Testores[j].end());
+            
+            // C. Guardamos la fila combinada en el resultado
+            resultado.push_back(filaNueva);
+        }
+    }
+
+    return resultado;
+}
+//Operador Diagonal
+
+vector<vector<int>> operadorDiagonal(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
+    // Dimensiones de BM
+    int filasBM = BM.size();
+    int columnasBM = (filasBM > 0) ? BM[0].size() : 0; 
+
+    // Dimensiones de Testores
+    int filasTestores = Testores.size();
+    int columnasTestores = (filasTestores > 0) ? Testores[0].size() : 0;
+
+    // Matriz de 0
+    // Tamaño: (filasBM + filasTestores) x (columnasBM + columnasTestores)
+    vector<vector<int>> resultado(
+        filasBM + filasTestores, 
+        vector<int>(columnasBM + columnasTestores, 0)
+    );
+
+    // BM en la esquina superior izquierda
+    for (int i = 0; i < filasBM; i++) {
+        for (int j = 0; j < columnasBM; j++) {
+            resultado[i][j] = BM[i][j];
+        }
+    }
+
+    // testores en la esquina inferior derecha
+    for (int i = 0; i < filasTestores; i++) {
+        for (int j = 0; j < columnasTestores; j++) {
+            // El desplazamiento se basa en las dimensiones de BM
+            // Fila destino = i + altura de BM
+            // Columna destino = j + anchura de BM
+            resultado[i + filasBM][j + columnasBM] = Testores[i][j];
+        }
+    }
+
+    return resultado;
+}
+
