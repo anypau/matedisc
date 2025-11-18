@@ -1,0 +1,137 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+/* ======================= IMPRIMIR ======================= */
+void imprimirMatriz(const vector<vector<int>>& matriz, const string& nombre) {
+    cout << "\n=== " << nombre << " ===\n";
+    if (matriz.empty() || matriz[0].empty()) {
+        cout << "(matriz vacia)\n";
+        return;
+    }
+    for (const auto& fila : matriz) {
+        for (int elemento : fila) cout << elemento << "\t";
+        cout << "\n";
+    }
+}
+
+/* ======================= LECTOR ======================= */
+bool leerMatriz(const string& nombreArchivo, vector<vector<int>>& M) {
+    ifstream archivo(nombreArchivo);
+    if (!archivo.is_open()) {
+        cerr << "Error: No se pudo abrir " << nombreArchivo << endl;
+        return false;
+    }
+
+    string linea;
+    while (getline(archivo, linea)) {
+        if (linea.empty()) continue;
+        stringstream ss(linea);
+        vector<int> fila;
+        int v;
+        while (ss >> v) fila.push_back(v);
+        if (!fila.empty()) M.push_back(fila);
+    }
+    return true;
+}
+
+/* ======================= OPERACION: IGUALAR COLUMNAS ======================= */
+vector<vector<int>> igualarColumnas(const vector<vector<int>>& matriz, int ancho) {
+    vector<vector<int>> r = matriz;
+    for (auto& fila : r) fila.resize(ancho, 0);
+    return r;
+}
+
+/* ======================= CONCATENACION ======================= */
+vector<vector<int>> concatenacion(vector<vector<int>>& A, vector<vector<int>>& B) {
+    size_t maxFilas = max(A.size(), B.size());
+    size_t colsA = A.empty() ? 0 : A[0].size();
+    size_t colsB = B.empty() ? 0 : B[0].size();
+
+    vector<vector<int>> R;
+
+    for (size_t i = 0; i < maxFilas; i++) {
+        vector<int> fila;
+
+        if (i < A.size()) fila.insert(fila.end(), A[i].begin(), A[i].end());
+        else fila.insert(fila.end(), colsA, 0);
+
+        if (i < B.size()) fila.insert(fila.end(), B[i].begin(), B[i].end());
+        else fila.insert(fila.end(), colsB, 0);
+
+        R.push_back(fila);
+    }
+    return R;
+}
+
+/* ======================= FUSION ======================= */
+vector<vector<int>> fusionCombinatoria(vector<vector<int>>& A, vector<vector<int>>& B) {
+    size_t colsA = A.empty() ? 0 : A[0].size();
+    size_t colsB = B.empty() ? 0 : B[0].size();
+    vector<vector<int>> R;
+
+    for (auto& FA : A) {
+        for (auto& FB : B) {
+            vector<int> fila = FA;
+            fila.resize(colsA);
+            fila.insert(fila.end(), FB.begin(), FB.end());
+            fila.resize(colsA + colsB);
+            R.push_back(fila);
+        }
+    }
+    return R;
+}
+
+/* ======================= OPERADOR DIAGONAL ======================= */
+vector<vector<int>> operadorDiagonal(vector<vector<int>>& A, vector<vector<int>>& B) {
+    size_t filasA = A.size(), filasB = B.size();
+    size_t colsA = A.empty() ? 0 : A[0].size();
+    size_t colsB = B.empty() ? 0 : B[0].size();
+
+    vector<vector<int>> R(filasA + filasB, vector<int>(colsA + colsB, 0));
+
+    for (size_t i = 0; i < filasA; i++)
+        for (size_t j = 0; j < colsA; j++)
+            R[i][j] = A[i][j];
+
+    for (size_t i = 0; i < filasB; i++)
+        for (size_t j = 0; j < colsB; j++)
+            R[i + filasA][j + colsA] = B[i][j];
+
+    return R;
+}
+
+/* ======================= MAIN ======================= */
+int main() {
+    vector<vector<int>> BM;        // matriz.txt
+    vector<vector<int>> MB;        // matriz_B.txt
+
+    cout << "Leyendo 'matriz.txt'...\n";
+    if (!leerMatriz("matriz.txt", BM)) return 1;
+
+    cout << "Leyendo 'matriz_B.txt'...\n";
+    if (!leerMatriz("matriz_B.txt", MB)) return 1;
+
+    imprimirMatriz(BM, "Matriz A = matriz.txt");
+    imprimirMatriz(MB, "Matriz B = matriz_B.txt");
+
+    /* ======================= 1. CONCATENACION ======================= */
+    auto C = concatenacion(BM, MB);
+    imprimirMatriz(C, "Concatenacion Generalizada");
+
+    /* ======================= 2. FUSION ======================= */
+    auto F = fusionCombinatoria(BM, MB);
+    imprimirMatriz(F, "Fusion Combinatoria Flexible");
+
+    /* ======================= 3. OPERADOR DIAGONAL ======================= */
+    auto D = operadorDiagonal(BM, MB);
+    imprimirMatriz(D, "Operador Diagonal Generalizado");
+
+    return 0;
+}
+
