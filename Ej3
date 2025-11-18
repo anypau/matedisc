@@ -2,176 +2,165 @@
 #include <vector>
 using namespace std;
 
-// --------------------------------------------------------------
-// Verifica si alpha es testor segun Prop. 1.3
-// devuelve: -1 si es testor
-// de lo contrario, devuelve el indice de la fila a de MB que provoca NO testor
-// (la fila con el ultimo 1 mas a la izquierda, como pide el paper)
-// --------------------------------------------------------------
-int filaResponsable(const vector<vector<int>>& MB, const vector<int>& alpha)
-{
-    int mejorFila = -1;
-    int mejorPos = 999999; // queremos el ultimo 1 mas a la izquierda (indice mas pequeno)
+int filas, columnas;
+vector<vector<int>> BM;
+vector<vector<int>> testores;
+vector<vector<int>> tipicos;
 
-    int m = MB.size();
-    int n = MB[0].size();
+// ----------------------------------------
+// Verifica si un conjunto S (indices de columnas) es testor
+// ----------------------------------------
+bool esTestorConjunto(const vector<int>& S) {
+    if (S.empty()) return false;
 
-    for (int i = 0; i < m; i++) {
+    for (int f = 0; f < filas; f++) {
+        bool cubierta = false;
+        for (int col : S) {
+            if (BM[f][col] == 1) {
+                cubierta = true;
+                break;
+            }
+        }
+        if (!cubierta) return false;
+    }
+    return true;
+}
 
-        bool cubre = false;
+// ----------------------------------------
+// Factibilidad: ¿vale la pena seguir extendiendo S?
+// Si hay una fila que no esta cubierta por S y tampoco la podra
+// cubrir ninguna columna futura (>= k), entonces se poda.
+// ----------------------------------------
+bool factible(const vector<int>& S, int k) {
+    for (int f = 0; f < filas; f++) {
+        bool posible = false;
 
-        for (int j = 0; j < n; j++) {
-            if (alpha[j] == 1 && MB[i][j] == 1) {
-                cubre = true;
+        // ya cubierta por S?
+        for (int col : S) {
+            if (BM[f][col] == 1) {
+                posible = true;
                 break;
             }
         }
 
-        if (!cubre) {
-            // α NO es testor → buscar el ultimo 1 mas a la izquierda en la fila i
-            int ultimo1 = -1;
-            for (int j = 0; j < n; j++)
-                if (MB[i][j] == 1) {
-                    ultimo1 = j;
-                    break; // primer 1 = mas a la izquierda
+        // si no, ver si alguna columna futura la podria cubrir
+        if (!posible) {
+            for (int c = k; c < columnas; c++) {
+                if (BM[f][c] == 1) {
+                    posible = true;
+                    break;
                 }
-
-            if (ultimo1 < mejorPos) {
-                mejorPos = ultimo1;
-                mejorFila = i;
             }
         }
+
+        if (!posible) return false;
+    }
+    return true;
+}
+
+// ----------------------------------------
+// Backtracking BT con poda (saltos)
+// S: conjunto actual
+// k: siguiente columna que se puede agregar (lexicografico)
+// ----------------------------------------
+void BT(vector<int>& S, int k) {
+    // poda por factibilidad (salto de rama)
+    if (!factible(S, k)) return;
+
+    // si ya es testor, lo guardamos y NO expandimos supersets
+    if (esTestorConjunto(S)) {
+        testores.push_back(S);
+        return;
     }
 
-    return mejorFila;
+    // expandir agregando columnas posteriores
+    for (int c = k; c < columnas; c++) {
+        S.push_back(c);
+        BT(S, c + 1);
+        S.pop_back();
+    }
 }
 
-// --------------------------------------------------------------
-// Proposición 1.4 – Salto desde TESTOR
-// k = índice del último 1 en alpha
-// --------------------------------------------------------------
-vector<int> saltoTestor(const vector<int>& alpha)
-{
-    int n = alpha.size();
-    vector<int> sig(n,0);
+// ----------------------------------------
+// Es tipico si ningun subconjunto propio es testor
+// ----------------------------------------
+bool esTipicoConjunto(const vector<int>& S) {
+    int n = S.size();
+    if (n == 0) return false;
 
-    int k = -1;
-    for (int j = n-1; j >= 0; j--)
-        if (alpha[j] == 1) {
-            k = j;
-            break;
+    int total = 1 << n; // 2^n subconjuntos
+
+    for (int mask = 1; mask < total; mask++) {
+        if (mask == total - 1) continue; // no el conjunto completo
+
+        vector<int> sub;
+        for (int i = 0; i < n; i++) {
+            if (mask & (1 << i)) {
+                sub.push_back(S[i]);
+            }
         }
 
-    if (k <= 0)
-        return vector<int>(n,0); // fin del algoritmo
-
-    // copiar alpha[0 .. k-2]
-    for (int j = 0; j < k-1; j++)
-        sig[j] = alpha[j];
-
-    sig[k-1] = 1;
-    // todo lo demas queda en 0
-    return sig;
-}
-
-// --------------------------------------------------------------
-// Proposición 1.5 – Salto desde NO testor
-// usando la fila responsable "a" y su ultimo 1 mas a la izquierda
-// --------------------------------------------------------------
-vector<int> saltoNoTestor(const vector<vector<int>>& MB,
-                           const vector<int>& alpha,
-                           int fila)
-{
-    int n = alpha.size();
-    vector<int> sig(n,0);
-
-    // encontrar el ultimo 1 mas a la izquierda de la fila "fila"
-    int k = -1;
-    for (int j = 0; j < n; j++)
-        if (MB[fila][j] == 1) {
-            k = j;
-            break;
-        }
-
-    // aplicar la definicion del PDF
-    for (int j = 0; j < k; j++)
-        sig[j] = alpha[j];
-
-    sig[k] = 1;
-
-    return sig;
-}
-
-// --------------------------------------------------------------
-// Determinar si alpha es tipico (definicion directa)
-// --------------------------------------------------------------
-bool esTipico(const vector<vector<int>>& MB, const vector<int>& alpha)
-{
-    int n = alpha.size();
-
-    for (int mask = 1; mask < (1<<n); mask++) {
-        if (mask == (1<<n)-1) continue;
-
-        vector<int> sub(n,0);
-        for (int j = 0; j < n; j++)
-            if (mask & (1<<j))
-                sub[j] = alpha[j];
-
-        if (filaResponsable(MB, sub) == -1)
-            return false;
+        if (esTestorConjunto(sub)) return false;
     }
 
     return true;
 }
 
-// --------------------------------------------------------------
-// MAIN – Algoritmo BT EXACTO del PDF
-// --------------------------------------------------------------
-int main()
-{
-    int filas, columnas;
-    cout << "Filas MB: ";
+// ----------------------------------------
+// MAIN
+// ----------------------------------------
+int main() {
+    cout << "Ingrese numero de filas: ";
     cin >> filas;
-    cout << "Columnas: ";
+
+    cout << "Ingrese numero de columnas (max 10): ";
     cin >> columnas;
 
-    vector<vector<int>> MB(filas, vector<int>(columnas));
+    BM.assign(filas, vector<int>(columnas));
 
-    cout << "Ingrese MB:\n";
-    for (int i = 0; i < filas; i++)
-        for (int j = 0; j < columnas; j++)
-            cin >> MB[i][j];
+    cout << "Ingrese la matriz booleana:\n";
+    for (int i = 0; i < filas; i++) {
+        for (int j = 0; j < columnas; j++) {
+            cin >> BM[i][j];
+        }
+    }
 
-    vector<int> alpha(columnas,0);
-    alpha[columnas-1] = 1; // empieza en (0,...,0,1)
+    vector<int> S;
+    BT(S, 0);  // empezar desde columna 0
 
-    cout << "\nTestores tipicos:\n";
+    // sacar tipicos
+    for (const auto& T : testores) {
+        if (esTipicoConjunto(T)) {
+            tipicos.push_back(T);
+        }
+    }
 
-    while (true)
-    {
-        int f = filaResponsable(MB, alpha);
-
-        if (f == -1) { 
-            // ES TESTOR
-            if (esTipico(MB, alpha)) {
-                for (int b: alpha) cout << b;
-                cout << endl;
+    cout << "\n=== TESTORES ENCONTRADOS ===\n";
+    if (testores.empty()) {
+        cout << "(No existe ningun testor)\n";
+    } else {
+        for (const auto& T : testores) {
+            cout << "{ ";
+            for (int col : T) {
+                cout << char('A' + col) << " ";
             }
-
-            alpha = saltoTestor(alpha); // Proposición 1.4
+            cout << "}\n";
         }
-        else { 
-            // NO ES TESTOR
-            alpha = saltoNoTestor(MB, alpha, f); // Proposición 1.5
+    }
+
+    cout << "\n=== TESTORES TIPICOS ===\n";
+    if (tipicos.empty()) {
+        cout << "(No existe ningun testor tipico)\n";
+    } else {
+        for (const auto& T : tipicos) {
+            cout << "{ ";
+            for (int col : T) {
+                cout << char('A' + col) << " ";
+            }
+            cout << "}\n";
         }
-
-        // fin: alpha = 0000...0
-        bool fin = true;
-        for (int b: alpha)
-            if (b == 1) fin = false;
-
-        if (fin) break;
     }
 
     return 0;
 }
+
