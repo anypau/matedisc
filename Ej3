@@ -1,0 +1,111 @@
+#include <iostream>
+#include <vector>
+#include <chrono>
+using namespace std;
+
+// Verificar si una mascara S es testor
+bool esTestor(const vector<vector<int>>& M, int S) {
+    int filas = M.size();
+    int columnas = M[0].size();
+
+    for (int f = 0; f < filas; f++) {
+        bool cubierta = false;
+        for (int c = 0; c < columnas; c++) {
+            if ((S & (1 << c)) && M[f][c] == 1) {
+                cubierta = true;
+                break;
+            }
+        }
+        if (!cubierta) return false;
+    }
+    return true;
+}
+
+// Verificar si S es tipico: ningun subconjunto propio es testor
+bool esTipico(const vector<vector<int>>& M, int S) {
+    // Recorre todos los subconjuntos propios de S
+    for (int sub = (S - 1) & S; sub > 0; sub = (sub - 1) & S) {
+        if (esTestor(M, sub)) return false;
+    }
+    return true;
+}
+
+int main() {
+    int filas, columnas;
+
+    cout << "Ingrese numero de filas (max 100): ";
+    cin >> filas;
+    if (filas < 1 || filas > 100) {
+        cout << "Error: filas fuera de rango (1-100).\n";
+        return 1;
+    }
+
+    cout << "Ingrese numero de columnas (max 10): ";
+    cin >> columnas;
+    if (columnas < 1 || columnas > 10) {
+        cout << "Error: columnas fuera de rango (1-10).\n";
+        return 1;
+    }
+
+    vector<vector<int>> M(filas, vector<int>(columnas));
+
+    cout << "\nIngrese la matriz booleana:\n";
+    for (int i = 0; i < filas; i++) {
+        for (int j = 0; j < columnas; j++) {
+            cin >> M[i][j];
+        }
+    }
+
+    cout << "\nEjecutando algoritmo BT (exhaustivo)...\n";
+
+    auto inicio = chrono::high_resolution_clock::now();
+
+    vector<int> testores;
+    vector<int> tipicos;
+
+    int total = 1 << columnas; // 2^columnas
+
+    // Recorre todas las mascaras no vacias
+    for (int S = 1; S < total; S++) {
+        if (esTestor(M, S)) {
+            testores.push_back(S);
+            if (esTipico(M, S)) {
+                tipicos.push_back(S);
+            }
+        }
+    }
+
+    auto fin = chrono::high_resolution_clock::now();
+    double tiempo = chrono::duration<double>(fin - inicio).count();
+
+    // Mostrar resultados
+    cout << "\n=== TESTORES ENCONTRADOS ===\n";
+    if (testores.empty()) {
+        cout << "(No existe ningun testor para esta matriz)\n";
+    } else {
+        for (int S : testores) {
+            cout << "{ ";
+            for (int c = 0; c < columnas; c++)
+                if (S & (1 << c))
+                    cout << char('A' + c) << " ";
+            cout << "}\n";
+        }
+    }
+
+    cout << "\n=== TESTORES TIPICOS ===\n";
+    if (tipicos.empty()) {
+        cout << "(No existe ningun testor tipico para esta matriz)\n";
+    } else {
+        for (int S : tipicos) {
+            cout << "{ ";
+            for (int c = 0; c < columnas; c++)
+                if (S & (1 << c))
+                    cout << char('A' + c) << " ";
+            cout << "}\n";
+        }
+    }
+
+    cout << "\nTiempo de ejecucion: " << tiempo << " s\n";
+
+    return 0;
+}
