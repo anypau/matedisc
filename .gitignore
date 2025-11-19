@@ -1,0 +1,37 @@
+# Compilados y binarios
+*.exe
+*.out
+*.o
+*.obj
+
+# Archivos generados automáticamente
+matriz_B.txt
+matriz.txt
+tipicos.txt
+concatenacion.txt
+fusion.txt
+diagonal.txt
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de copia o backup
+*.bak
+*.tmp
+
+# Carpetas de build
+/build
+/bin
+/Debug
+/Release
+
+# Archivos del entorno (VSCode, CLion)
+.vscode/
+.idea/
+*.code-workspace
+cmake-build-debug/
+cmake-build-release/
+
+# Log files
+*.log
