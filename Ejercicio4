@@ -2,7 +2,9 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <chrono>   // <-- agregado
 using namespace std;
+using namespace std::chrono; // <-- agregado
 
 /* ================================================================
    SUBFILA / MATRIZ BASICA
@@ -45,7 +47,7 @@ void guardar(const vector<vector<int>>& M, string nombre) {
 }
 
 /* ================================================================
-   LEER TIPICOS.TXT  → Matriz B en binario
+   LEER TIPICOS.TXT → Matriz B
    ================================================================ */
 
 vector<vector<int>> leerTipicos(int &columnas) {
@@ -74,7 +76,6 @@ vector<vector<int>> leerTipicos(int &columnas) {
         if (!fila.empty()) letrasPorFila.push_back(fila);
     }
 
-    // Convertir a binario
     vector<vector<int>> B;
     for (auto &L : letrasPorFila) {
         vector<int> fila(columnas, 0);
@@ -111,10 +112,13 @@ bool esTipicoBT(const vector<vector<int>>& M, const vector<int>& S) {
 }
 
 /* ================================================================
-   MAIN FULL AUTOMATICO
+   MAIN
    ================================================================ */
 
 int main() {
+
+    auto inicio = high_resolution_clock::now();  // <-- inicia cronometro
+
     cout << "\n=== LEYENDO TIPICOS DESDE 'tipicos.txt' ===\n";
 
     int columnas = 0;
@@ -127,7 +131,7 @@ int main() {
     }
 
     guardar(B, "matriz_B.txt");
-    cout << "\n✔ Matriz B guardada en 'matriz_B.txt'\n";
+    cout << "\n Matriz B guardada en 'matriz_B.txt'\n";
 
     /* ============================================================
        VERIFICAR SI B ES BASICA
@@ -135,9 +139,9 @@ int main() {
     auto BM = matrizBasica(B);
 
     if (BM.size() == B.size())
-        cout << "\n✔ La matriz B ES BASICA.\n";
+        cout << "\n La matriz B ES BASICA.\n";
     else
-        cout << "\n❌ La matriz B NO es BASICA.\n";
+        cout << "\n La matriz B NO es BASICA.\n";
 
     cout << "\n=== MATRIZ BASICA DE B ===\n";
     for (auto &fila : BM) {
@@ -173,7 +177,16 @@ int main() {
         cout << "\n";
     }
 
-    cout << "\n✔ PROCESO COMPLETO.\n";
+    cout << "\nPROCESO COMPLETO.\n";
+
+    /* ============================================================
+       TIEMPO DE EJECUCION
+       ============================================================ */
+    auto fin = high_resolution_clock::now();
+    auto duracion = duration_cast<milliseconds>(fin - inicio);
+
+    cout << "\n=== TIEMPO DE EJECUCION ===\n";
+    cout << "Tiempo total: " << duracion.count() << " ms\n";
 
     return 0;
 }
