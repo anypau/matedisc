@@ -1,88 +1,72 @@
-#include <iostream>//biblioteca de input output
-#include <vector>//biblioteca de vectores
-#include <fstream>//manejo de archivos
-#include <sstream>//manejo de strings
-#include <string>//declaración de strings
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 using namespace std;
 
-void imprimirMatriz(const vector<vector<int>>& matriz, const string& nombre) {
-    cout<<endl<< "Resultado de " << nombre <<endl;
-    //check de matriz vacía
-    if (matriz.empty() || (matriz.size() > 0 && matriz[0].empty())) {
-        cout << "Matriz vacía"<<endl;
-        return;//no retorna nada
-    }
-    for (const auto& fila:matriz) {
-        for (int elemento:fila) {
-            cout <<elemento<<"\t";
+
+void escribirEnArchivo(const vector<vector<int>>& matriz, const string& nombre, const string& nombreArchivo) {
+    ofstream archivo(nombreArchivo, ios::app); 
+    if (archivo.is_open()) {
+        archivo << "\n--- " << nombre << " ---\n";
+        if (matriz.empty() || (matriz.size() > 0 && matriz[0].empty())) {
+            archivo << "Matriz vacia.\n";
+        } else {
+            for (const auto& fila : matriz) {
+                for (size_t i = 0; i < fila.size(); ++i) {
+                    
+                    archivo << fila[i] << (i < fila.size() - 1 ? " " : ""); 
+                }
+                archivo << endl;
+            }
         }
-        cout<<endl;
+        archivo << "--------------------------\n";
+        archivo.close();
+    } else {
+        cerr << "Error al escribir en " << nombreArchivo << endl;
     }
 }
 
-bool leerMatricesDesdeArchivo(const string& nombreArchivo, vector<vector<int>>& BM, vector<vector<int>>& Testores) {
+
+bool leerMatrizUnica(const string& nombreArchivo, vector<vector<int>>& matrizDestino) {
     ifstream archivo(nombreArchivo);
     if (!archivo.is_open()) {
-        cerr << "Error: No se pudo abrir el archivo de matrices: " << nombreArchivo << endl;
+        cerr << "Error: No se pudo abrir " << nombreArchivo << endl;
         return false;
     }
 
     string linea;
-    bool leyendoBM = true;
-
-    while (leyendoBM && getline(archivo, linea)) {
-        if (linea.empty() || linea.find_first_not_of(" \t\n\r") == string::npos) {
-            leyendoBM = false; 
-            continue;
-        }
-        
-        stringstream ss(linea);
-        int valor;
-        vector<int> fila;
-        
-        while (ss >> valor) {
-            fila.push_back(valor);
-        }
-        if (!fila.empty()) {
-            BM.push_back(fila);
-        }
-    }
-
     while (getline(archivo, linea)) {
-        if (linea.empty() || linea.find_first_not_of(" \t\n\r") == string::npos) {
-            continue;
-        }
+        if (linea.empty() || linea.find_first_not_of(" \t\n\r") == string::npos) continue;
 
         stringstream ss(linea);
         int valor;
         vector<int> fila;
-        
         while (ss >> valor) {
             fila.push_back(valor);
         }
         if (!fila.empty()) {
-            Testores.push_back(fila);
+            matrizDestino.push_back(fila);
         }
     }
-
     return true;
 }
 
-vector<vector<int>> concatenacion(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
-    if (BM.size() != Testores.size()) {
-        cerr << "Error (Concatenacion): Las matrices deben tener el mismo número de filas." << endl;
-        return {};
-    }
 
-    int filas = BM.size();
-    vector<vector<int>> concatenada(filas);
+
+vector<vector<int>> concatenacion(vector<vector<int>>& A, vector<vector<int>>& B) {
+    if (A.size() != B.size()) return {}; 
+
+    int filas = A.size();
+    vector<vector<int>> resultado(filas);
 
     for (int i = 0; i < filas; i++) {
-        concatenada[i].insert(concatenada[i].end(), BM[i].begin(), BM[i].end());
-        concatenada[i].insert(concatenada[i].end(), Testores[i].begin(), Testores[i].end());
+        resultado[i].insert(resultado[i].end(), A[i].begin(), A[i].end());
+        resultado[i].insert(resultado[i].end(), B[i].begin(), B[i].end());
     }
-    return concatenada;
+    return resultado;
 }
 
 vector<vector<int>> fusionCombinatoria(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
@@ -90,69 +74,106 @@ vector<vector<int>> fusionCombinatoria(vector<vector<int>>& BM, vector<vector<in
 
     for (const auto& filaBM : BM) {
         for (const auto& filaTestores : Testores) {
-            
             vector<int> filaNueva;
-            
             filaNueva.insert(filaNueva.end(), filaBM.begin(), filaBM.end());
             filaNueva.insert(filaNueva.end(), filaTestores.begin(), filaTestores.end());
-            
             resultado.push_back(filaNueva);
         }
     }
     return resultado;
 }
 
-vector<vector<int>> operadorDiagonal(vector<vector<int>>& BM, vector<vector<int>>& Testores) {
-    int filasBM = BM.size();
-    int columnasBM = (filasBM > 0) ? BM[0].size() : 0; 
-
-    int filasTestores = Testores.size();
-    int columnasTestores = (filasTestores > 0) ? Testores[0].size() : 0;
+vector<vector<int>> operadorDiagonal(vector<vector<int>>& A, vector<vector<int>>& B) {
+    int filasA = A.size();
+    int colsA = (filasA > 0) ? A[0].size() : 0; 
+    int filasB = B.size();
+    int colsB = (filasB > 0) ? B[0].size() : 0;
 
     vector<vector<int>> resultado(
-        filasBM + filasTestores, 
-        vector<int>(columnasBM + columnasTestores, 0)
+        filasA + filasB, 
+        vector<int>(colsA + colsB, 0)
     );
 
-    for (int i = 0; i < filasBM; i++) {
-        for (int j = 0; j < columnasBM; j++) {
-            resultado[i][j] = BM[i][j];
+    for (int i = 0; i < filasA; i++) {
+        for (int j = 0; j < colsA; j++) {
+            resultado[i][j] = A[i][j];
         }
     }
 
-    for (int i = 0; i < filasTestores; i++) {
-        for (int j = 0; j < columnasTestores; j++) {
-            resultado[i + filasBM][j + columnasBM] = Testores[i][j];
+    for (int i = 0; i < filasB; i++) {
+        for (int j = 0; j < colsB; j++) {
+            resultado[i + filasA][j + colsA] = B[i][j];
         }
     }
 
     return resultado;
 }
 
+
+void imprimirMatriz(const vector<vector<int>>& matriz, const string& nombre) {
+    cout << "\n--- Resultado de " << nombre << " ---\n";
+    if (matriz.empty() || (matriz.size() > 0 && matriz[0].empty())) {
+        cout << "Matriz vacia.\n";
+        return;
+    }
+    for (const auto& fila : matriz) {
+        for (const auto& elemento : fila) {
+            cout << elemento << " ";
+        }
+        cout << endl;
+    }
+}
+
+
+
 int main() {
     vector<vector<int>> BM;
     vector<vector<int>> Testores;
-    const string nombreArchivo = "matrices.txt";
-
-    cout << "Iniciando lectura de matrices desde " << nombreArchivo << "..."<<endl;
-
-    if (!leerMatricesDesdeArchivo(nombreArchivo, BM, Testores)) {
-        return 1; 
-    }
-
-    imprimirMatriz(BM, "Matriz BM Leida");
-    imprimirMatriz(Testores, "Matriz Testores Leida");
     
-    vector<vector<int>> resConcatenacion = concatenacion(BM, Testores);
-    imprimirMatriz(resConcatenacion, "1. Concatenacion");
+    
+    const string archivoBM = "matriz.txt";
+    const string archivoTestores = "testores.txt";
+    
+    const string archivoSalida = "operadores.txt";
 
-    vector<vector<int>> resFusion = fusionCombinatoria(BM, Testores);
-    imprimirMatriz(resFusion, "2. Fusion Combinatoria");
+    
+    ofstream limpiar(archivoSalida);
+    limpiar.close();
 
-    vector<vector<int>> resDiagonal = operadorDiagonal(BM, Testores);
-    imprimirMatriz(resDiagonal, "3. Operador Diagonal");
+    cout << "Leyendo archivos..." << endl;
+
+    if (!leerMatrizUnica(archivoBM, BM)) return 1;
+    if (!leerMatrizUnica(archivoTestores, Testores)) return 1;
+
+    
+    vector<vector<int>> baseFusion = fusionCombinatoria(BM, Testores);
+    
+    escribirEnArchivo(baseFusion, "Base: Fusion Combinatoria (Potencia 1)", archivoSalida);
+    cout << "Fusion Combinatoria base calculada." << endl;
+
+ 
+    vector<vector<int>> gammaActual = baseFusion;
+    
+    for (int k = 2; k <= 5; k++) {
+        gammaActual = concatenacion(gammaActual, baseFusion);
+        
+        string titulo = "(Concatenacion) Potencia " + to_string(k);
+        escribirEnArchivo(gammaActual, titulo, archivoSalida);
+    }
+    cout << "Operaciones de concatenacion completadas." << endl;
+
+  
+    vector<vector<int>> phiActual = baseFusion;
+
+    for (int k = 2; k <= 5; k++) {
+        phiActual = operadorDiagonal(phiActual, baseFusion);
+        
+        string titulo = "Diagonal Potencia " + to_string(k);
+        escribirEnArchivo(phiActual, titulo, archivoSalida);
+    }
+    cout << "Operaciones Diagonal completadas." << endl;
+    cout << "Todos los resultados guardados en: " << archivoSalida << endl;
 
     return 0;
 }
-
 
