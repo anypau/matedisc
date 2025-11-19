@@ -1,11 +1,11 @@
-#include <iostream>
+#include <iostream> 
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <algorithm>
 
 using namespace std;
-
 
 void escribirEnArchivo(const vector<vector<int>>& matriz, const string& nombre, const string& nombreArchivo) {
     ofstream archivo(nombreArchivo, ios::app); 
@@ -16,7 +16,6 @@ void escribirEnArchivo(const vector<vector<int>>& matriz, const string& nombre, 
         } else {
             for (const auto& fila : matriz) {
                 for (size_t i = 0; i < fila.size(); ++i) {
-                    
                     archivo << fila[i] << (i < fila.size() - 1 ? " " : ""); 
                 }
                 archivo << endl;
@@ -28,7 +27,6 @@ void escribirEnArchivo(const vector<vector<int>>& matriz, const string& nombre, 
         cerr << "Error al escribir en " << nombreArchivo << endl;
     }
 }
-
 
 bool leerMatrizUnica(const string& nombreArchivo, vector<vector<int>>& matrizDestino) {
     ifstream archivo(nombreArchivo);
@@ -54,18 +52,25 @@ bool leerMatrizUnica(const string& nombreArchivo, vector<vector<int>>& matrizDes
     return true;
 }
 
-
-
 vector<vector<int>> concatenacion(vector<vector<int>>& A, vector<vector<int>>& B) {
-    if (A.size() != B.size()) return {}; 
+    size_t maxFilas = max(A.size(), B.size());
+    size_t colsA = A.empty() ? 0 : A[0].size();
+    size_t colsB = B.empty() ? 0 : B[0].size();
 
-    int filas = A.size();
-    vector<vector<int>> resultado(filas);
+    vector<vector<int>> resultado;
 
-    for (int i = 0; i < filas; i++) {
-        resultado[i].insert(resultado[i].end(), A[i].begin(), A[i].end());
-        resultado[i].insert(resultado[i].end(), B[i].begin(), B[i].end());
+    for (size_t i = 0; i < maxFilas; ++i) {
+        vector<int> fila;
+
+        if (i < A.size()) fila.insert(fila.end(), A[i].begin(), A[i].end());
+        else fila.insert(fila.end(), colsA, 0);
+
+        if (i < B.size()) fila.insert(fila.end(), B[i].begin(), B[i].end());
+        else fila.insert(fila.end(), colsB, 0);
+
+        resultado.push_back(fila);
     }
+
     return resultado;
 }
 
@@ -89,10 +94,7 @@ vector<vector<int>> operadorDiagonal(vector<vector<int>>& A, vector<vector<int>>
     int filasB = B.size();
     int colsB = (filasB > 0) ? B[0].size() : 0;
 
-    vector<vector<int>> resultado(
-        filasA + filasB, 
-        vector<int>(colsA + colsB, 0)
-    );
+    vector<vector<int>> resultado(filasA + filasB, vector<int>(colsA + colsB, 0));
 
     for (int i = 0; i < filasA; i++) {
         for (int j = 0; j < colsA; j++) {
@@ -109,7 +111,6 @@ vector<vector<int>> operadorDiagonal(vector<vector<int>>& A, vector<vector<int>>
     return resultado;
 }
 
-
 void imprimirMatriz(const vector<vector<int>>& matriz, const string& nombre) {
     cout << "\n--- Resultado de " << nombre << " ---\n";
     if (matriz.empty() || (matriz.size() > 0 && matriz[0].empty())) {
@@ -124,55 +125,44 @@ void imprimirMatriz(const vector<vector<int>>& matriz, const string& nombre) {
     }
 }
 
-
-
 int main() {
     vector<vector<int>> BM;
     vector<vector<int>> Testores;
-    
-    
+
     const string archivoBM = "matriz.txt";
-    const string archivoTestores = "testores.txt";
-    
+    const string archivoTestores = "matriz_B.txt";
     const string archivoSalida = "operadores.txt";
 
-    
-    ofstream limpiar(archivoSalida);
-    limpiar.close();
+    ofstream limpiar(archivoSalida); limpiar.close();
 
     cout << "Leyendo archivos..." << endl;
-
     if (!leerMatrizUnica(archivoBM, BM)) return 1;
     if (!leerMatrizUnica(archivoTestores, Testores)) return 1;
 
-    
     vector<vector<int>> baseFusion = fusionCombinatoria(BM, Testores);
-    
     escribirEnArchivo(baseFusion, "Base: Fusion Combinatoria (Potencia 1)", archivoSalida);
     cout << "Fusion Combinatoria base calculada." << endl;
 
- 
+    //  Concatenar siempre con la matriz original BM
     vector<vector<int>> gammaActual = baseFusion;
-    
     for (int k = 2; k <= 5; k++) {
-        gammaActual = concatenacion(gammaActual, baseFusion);
-        
+        gammaActual = concatenacion(gammaActual, BM);  // ← CAMBIO AQUÍ
         string titulo = "(Concatenacion) Potencia " + to_string(k);
         escribirEnArchivo(gammaActual, titulo, archivoSalida);
     }
     cout << "Operaciones de concatenacion completadas." << endl;
 
-  
+    // Diagonal con baseFusion (no se cambia salvo que lo pidas)
     vector<vector<int>> phiActual = baseFusion;
-
     for (int k = 2; k <= 5; k++) {
         phiActual = operadorDiagonal(phiActual, baseFusion);
-        
         string titulo = "Diagonal Potencia " + to_string(k);
         escribirEnArchivo(phiActual, titulo, archivoSalida);
     }
+
     cout << "Operaciones Diagonal completadas." << endl;
     cout << "Todos los resultados guardados en: " << archivoSalida << endl;
 
     return 0;
 }
+
